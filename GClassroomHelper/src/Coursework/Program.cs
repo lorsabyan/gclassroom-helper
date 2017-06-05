@@ -51,6 +51,7 @@ namespace Coursework
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Exception: " + ex.Message);
+                Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
             }
 
             Console.ResetColor();
@@ -207,43 +208,57 @@ namespace Coursework
 
                     foreach (var attachment in submission.AssignmentSubmission.Attachments)
                     {
-                        var request = driveService.Files.Get(attachment.DriveFile.Id);
-
-                        var filePath = Path.Combine(studentPath, attachment.DriveFile.Title);
-
-                        var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-                        
-                        // Add a handler which will be notified on progress changes.
-                        // It will notify on each chunk download and when the
-                        // download is completed or failed.
-                        request.MediaDownloader.ProgressChanged += (IDownloadProgress progress) =>
+                        try
                         {
-                            switch (progress.Status)
+                            if(attachment.DriveFile == null)
                             {
-                                case DownloadStatus.Completed:
-                                    {
-                                        Console.ForegroundColor = ConsoleColor.Green;
-                                        Console.WriteLine($"Done: {student.Profile.Name.FullName} => {attachment.DriveFile.Title}");
-                                        fileStream.Close();
-                                        break;
-                                    }
-                                case DownloadStatus.Failed:
-                                    {
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        Console.WriteLine($"Failed: {student.Profile.Name.FullName} => {attachment.DriveFile.Title}");
-                                        fileStream.Close();
-                                        break;
-                                    }
+                                continue;
                             }
-                        };
 
-                        tasks.Add(request.DownloadAsync(fileStream));
-                        
-                        if (attachment.DriveFile.Title.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                        {
-                            archives.Add(filePath);
+                            var request = driveService.Files.Get(attachment.DriveFile.Id);
+
+                            var filePath = Path.Combine(studentPath, attachment.DriveFile.Title);
+
+                            var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+
+
+                            // Add a handler which will be notified on progress changes.
+                            // It will notify on each chunk download and when the
+                            // download is completed or failed.
+                            request.MediaDownloader.ProgressChanged += (IDownloadProgress progress) =>
+                            {
+                                switch (progress.Status)
+                                {
+                                    case DownloadStatus.Completed:
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Green;
+                                            Console.WriteLine($"Done: {student.Profile.Name.FullName} => {attachment.DriveFile.Title}");
+                                            fileStream.Close();
+                                            break;
+                                        }
+                                    case DownloadStatus.Failed:
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            Console.WriteLine($"Failed: {student.Profile.Name.FullName} => {attachment.DriveFile.Title}");
+                                            fileStream.Close();
+                                            break;
+                                        }
+                                }
+                            };
+
+                            tasks.Add(request.DownloadAsync(fileStream));
+
+                            if (attachment.DriveFile.Title.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                archives.Add(filePath);
+                            }
                         }
+                        catch (Exception ex)
+                        {
+
+                            throw;
+                        }
+                        
                     }
                 }
             }
