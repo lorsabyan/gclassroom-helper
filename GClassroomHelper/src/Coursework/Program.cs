@@ -192,12 +192,15 @@ namespace Coursework
 
             var tasks = new List<Task>();
             var archives = new List<string>();
+            var users = new List<string>();
 
             foreach (var submission in submissions)
             {
                 if (submission.AssignmentSubmission?.Attachments != null && submission.AssignmentSubmission?.Attachments.Count != 0)
                 {
                     var student = classroomService.Courses.Students.Get(course.Id, submission.UserId).Execute();
+
+                    users.Add(student.Profile.EmailAddress.Split('@')[0]);
 
                     var studentAlias = $"{student.Profile.Name.FullName}__{student.Profile.EmailAddress.Split('@')[0]}";
                     var studentPath = Path.Combine(courseWorkPath, studentAlias);
@@ -255,7 +258,6 @@ namespace Coursework
                         }
                         catch (Exception ex)
                         {
-
                             throw;
                         }
                         
@@ -264,6 +266,8 @@ namespace Coursework
             }
 
             await Task.WhenAll(tasks);
+
+            File.AppendAllLines(Path.Combine(courseWorkPath, "users.txt"), users.OrderBy(p => p));
 
             Console.ResetColor();
             Console.WriteLine(new string('=', lineLength));
